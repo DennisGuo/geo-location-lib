@@ -1,5 +1,11 @@
 # GEO-LOCATION-LIB
 
+<a href="https://scan.coverity.com/projects/dennisguo-geo-location-lib">
+  <img alt="Coverity Scan Build Status"
+       src="https://scan.coverity.com/projects/12235/badge.svg"/>
+</a>
+
+
 由GeoBeans开发的用于android定位相关的工具库.
 
 ## 使用方法
