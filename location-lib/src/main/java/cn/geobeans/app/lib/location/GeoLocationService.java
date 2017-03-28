@@ -20,8 +20,10 @@ import android.widget.Toast;
 
 import com.alibaba.fastjson.JSON;
 
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 
@@ -38,7 +40,7 @@ public class GeoLocationService extends Service {
 
     private Context mContext;
     private static int mFrequency = 60; //获取位置间隔时间，单位秒
-    private static int mDistance = 5; //获取位置间隔举例，单位米
+    private static int mDistance = 1; //获取位置间隔距离，单位米
     private LocationManager mLocationManager;
     private LocalBinder mBinder = new LocalBinder();
 
@@ -82,23 +84,27 @@ public class GeoLocationService extends Service {
 
     private void initLocationManager(Intent intent) {
 
-        mLocationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
-        List<String> providers = mLocationManager.getAllProviders();
-        Log.e(TAG, "可用位置提供者：" + JSON.toJSONString(providers));
+        try {
+            mLocationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
+            List<String> providers = mLocationManager.getAllProviders();
+            Log.e(TAG, "可用位置提供者：" + JSON.toJSONString(providers));
 
 
-        LocationListener listener = getLocationListener();
+            LocationListener listener = getLocationListener();
 
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
-                && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-           toastAlert();
-        } else {
-            //GPS
-            mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, mFrequency * 1000, mDistance, listener);
-            //网络
-            mLocationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, mFrequency * 1000, mDistance, listener);
-            //第三方应用
-            mLocationManager.requestLocationUpdates(LocationManager.PASSIVE_PROVIDER, mFrequency * 1000, mDistance, listener);
+            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
+                    && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+               toastAlert();
+            } else {
+                //GPS
+                mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, mFrequency * 1000, mDistance, listener);
+                //网络
+                mLocationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, mFrequency * 1000, mDistance, listener);
+                //第三方应用
+                mLocationManager.requestLocationUpdates(LocationManager.PASSIVE_PROVIDER, mFrequency * 1000, mDistance, listener);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
@@ -114,14 +120,32 @@ public class GeoLocationService extends Service {
      * @param sp
      */
     private static void writeToSp(Location rs, SharedPreferences sp) {
-        try {
-            SharedPreferences.Editor editor = sp.edit();
-            editor.putString(GeoLocation.KEY_LOCATION, JSON.toJSONString(rs));
-            editor.apply();
-            Log.i(TAG, "SP写入最后新位置：" + rs.toString());
-        } catch (Exception e) {
-            e.printStackTrace();
+        if(rs != null) {
+            try {
+                SharedPreferences.Editor editor = sp.edit();
+                String str = getLocationJson(rs);//JSON.toJSONString(rs);
+                editor.putString(GeoLocation.KEY_LOCATION, str);
+                editor.apply();
+                Log.i(TAG, "SP写入最后新位置：" + str);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
+    }
+
+    private static String getLocationJson(Location rs) {
+        Map<String,Object> map = new HashMap<>();
+
+        map.put("accuracy",rs.getAccuracy());
+        map.put("bearing",rs.getBearing());
+        map.put("latitude",rs.getLatitude());
+        map.put("longitude",rs.getLongitude());
+        map.put("altitude",rs.getAltitude());
+        map.put("provider",rs.getProvider());
+        map.put("speed",rs.getSpeed());
+        map.put("time",rs.getTime());
+
+        return JSON.toJSONString(map);
     }
 
     /**
@@ -145,17 +169,21 @@ public class GeoLocationService extends Service {
         return new LocationListener() {
             @Override
             public void onLocationChanged(Location location) {
-                Log.d(TAG, "监听位置变化：" + JSON.toJSONString(location));
+                Log.d(TAG, "[Handler:"+mChangeHandlers.size()+"][Provider:"+location.getProvider()+"]监听位置变化：" + location.toString());
 
                 if (mChangeHandlers != null && mChangeHandlers.size() > 0) {
                     //TODO：回调
-                    Message msg = new Message();
-                    Bundle data = new Bundle();
-                    data.putParcelable(GeoLocation.KEY_LOCATION, location);
-                    msg.setData(data);
 
                     for (Handler h : mChangeHandlers) {
-                        h.sendMessage(msg);
+                        try {
+                            Message msg = h.obtainMessage();
+                            Bundle data = new Bundle();
+                            data.putParcelable(GeoLocation.KEY_LOCATION, location);
+                            msg.setData(data);
+                            h.sendMessage(msg);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
                     }
                 }
 

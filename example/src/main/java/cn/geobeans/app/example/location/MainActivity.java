@@ -5,6 +5,7 @@ import android.location.Location;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.os.PersistableBundle;
 import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
@@ -16,7 +17,9 @@ import android.widget.Toast;
 import com.alibaba.fastjson.JSON;
 
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 import cn.geobeans.app.lib.location.GeoLocation;
 
@@ -28,12 +31,16 @@ import cn.geobeans.app.lib.location.GeoLocation;
 public class MainActivity extends Activity implements View.OnClickListener {
 
     private static final String TAG = MainActivity.class.getName();
+    private static final String KEY_CACHE = "cache_log";
 
     private Button mBtnRefresh;
     private Button mBtnClear;
     private LinearLayout mList;
 
     private GeoLocation mLocation;
+
+
+    private ArrayList<Location> mCache = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -50,6 +57,36 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
         initEvent();
     }
+
+
+    @Override
+    public void onSaveInstanceState(Bundle outState) {
+        if(mCache.size() > 0 ){
+            Log.i(TAG,"onSaveInstanceState::"+mCache.size());
+            outState.putParcelableArrayList(KEY_CACHE,mCache);
+        }
+        super.onSaveInstanceState(outState);
+    }
+
+    @Override
+    protected void onRestoreInstanceState(Bundle savedInstanceState) {
+        if (savedInstanceState != null) {
+            mCache = savedInstanceState.getParcelableArrayList(KEY_CACHE);
+        }
+        initData();
+        super.onRestoreInstanceState(savedInstanceState);
+    }
+
+    private void initData() {
+        if(mCache != null) {
+            for (Location loc : mCache) {
+                drawItem(loc);
+            }
+        }else{
+            mCache = new ArrayList<>();
+        }
+    }
+
 
     private void initEvent() {
         mBtnRefresh.setOnClickListener(this);
@@ -75,13 +112,20 @@ public class MainActivity extends Activity implements View.OnClickListener {
      */
     private void appendToList(Location loc) {
         if(loc != null) {
-            TextView view = (TextView) getLayoutInflater().inflate(R.layout.item_log, null);
-            view.setText(getTextInfo(loc));
-            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-            params.setMargins(0, 0, 0, 10);
-            view.setLayoutParams(params);
-            mList.addView(view);
+
+            mCache.add(loc);
+
+            drawItem(loc);
         }
+    }
+
+    private void drawItem(Location loc) {
+        TextView view = (TextView) getLayoutInflater().inflate(R.layout.item_log, null);
+        view.setText(getTextInfo(loc));
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        params.setMargins(0, 0, 0, 10);
+        view.setLayoutParams(params);
+        mList.addView(view);
     }
 
     private String getTextInfo(Location loc) {
@@ -104,6 +148,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
         switch (view.getId()){
             case R.id.btn_clear:
                 mList.removeAllViews();
+                mCache.clear();
                 break;
             case R.id.btn_refresh:
                 try {
