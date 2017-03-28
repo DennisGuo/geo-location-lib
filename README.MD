@@ -12,7 +12,7 @@ compile "cn.geobeans:geo-location-lib:1.0.0"
 
 第二步：在应用的`AndroidManifest.xml`文件中注册服务
 
-```
+```xml
 <service android:name="cn.geobeans.app.lib.location.GeoLocationService"/>
 ```
 
