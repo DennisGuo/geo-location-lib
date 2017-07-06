@@ -31,6 +31,7 @@ public class App extends Application {
     public void onCreate() {
         super.onCreate();
         GeoLocation.getInstance().init(this);
+        // GeoLocation.getInstance().init(this,20,50);
     }
 
     @Override
@@ -54,7 +55,13 @@ public class App extends Application {
  * @param context 应用上下文
  */
 public void init(Context context)
-
+ /**
+ * 初始化
+ * @param context   应用上下文
+ * @param second    监听时间周期：单位秒
+ * @param meter     监听距离间隔：单位米
+ */
+public  void init(Context context,Integer second,Integer meter)
 /**
  * 销毁
  * @param context      应用上下文
