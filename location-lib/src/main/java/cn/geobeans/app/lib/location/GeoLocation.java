@@ -44,8 +44,22 @@ public class GeoLocation {
      * @param context 应用上下文
      */
     public  void init(Context context){
+       init(context,null,null);
+
+    }
+
+    /**
+     * 初始化
+     * @param context   应用上下文
+     * @param second    监听时间周期
+     * @param meter     监听距离间隔
+     */
+    public  void init(Context context,Integer second,Integer meter){
         Log.i(TAG,"初始化GeoLocation");
         Intent intent = new Intent(context,GeoLocationService.class);
+        intent.putExtra(GeoLocationService.KEY_TIME,second);
+        intent.putExtra(GeoLocationService.KEY_DISTANCE,meter);
+
         context.startService(intent);
         mConnection =  new ServiceConnection() {
             @Override
@@ -60,7 +74,6 @@ public class GeoLocation {
         };
         context.bindService(intent,mConnection,Context.BIND_AUTO_CREATE);
         initialized = true;
-
     }
 
     /**

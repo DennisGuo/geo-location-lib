@@ -12,7 +12,7 @@ public class App extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
-        GeoLocation.getInstance().init(this);
+        GeoLocation.getInstance().init(this,30,50);
     }
 
     @Override

@@ -35,6 +35,9 @@ public class GeoLocationService extends Service {
 
     private static final String TAG = GeoLocationService.class.getName();
 
+    static final String KEY_TIME = "time";
+    static final String KEY_DISTANCE = "distance";
+
     //位置变化回调
     protected static Set<Handler> mChangeHandlers = new LinkedHashSet<>();
 
@@ -84,6 +87,10 @@ public class GeoLocationService extends Service {
 
     private void initLocationManager(Intent intent) {
 
+        mFrequency = intent.getIntExtra(KEY_TIME,mFrequency);
+        mDistance = intent.getIntExtra(KEY_DISTANCE,mDistance);
+
+        Log.i(TAG,String.format("Frequency: time=%s, distance=%s ",mFrequency,mDistance));
         try {
             mLocationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
             List<String> providers = mLocationManager.getAllProviders();
