@@ -43,11 +43,6 @@ android{
 // In this section you declare the dependencies for your production and test code
 dependencies {
 
-    compile "com.android.support:support-core-utils:25.2.0"
-
-    compile "com.alibaba:fastjson:1.2.29"
-
-    testCompile 'junit:junit:4.12'
 }
 
 

@@ -3,31 +3,24 @@ package cn.geobeans.app.example.location;
 import android.app.Activity;
 import android.location.Location;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Message;
-import android.os.PersistableBundle;
 import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.TextView;
-import android.widget.Toast;
-
-import com.alibaba.fastjson.JSON;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
 
 import cn.geobeans.app.lib.location.GeoLocation;
+import cn.geobeans.app.lib.location.GeoLocationListener;
 
 /**
  * 启动首页
  * Created by ghx on 2017/3/27.
  */
-
 public class MainActivity extends Activity implements View.OnClickListener {
 
     private static final String TAG = MainActivity.class.getName();
@@ -39,9 +32,6 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
     private GeoLocation mLocation;
 
-
-    private ArrayList<Location> mCache = new ArrayList<>();
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -52,39 +42,9 @@ public class MainActivity extends Activity implements View.OnClickListener {
         mList = (LinearLayout) findViewById(R.id.list_log);
         // 检查权限
 
-        mLocation = GeoLocation.getInstance();
-        GeoLocation.requestPermission(this);
+        mLocation = GeoLocation.getInstance(this);
 
         initEvent();
-    }
-
-
-    @Override
-    public void onSaveInstanceState(Bundle outState) {
-        if(mCache.size() > 0 ){
-            Log.i(TAG,"onSaveInstanceState::"+mCache.size());
-            outState.putParcelableArrayList(KEY_CACHE,mCache);
-        }
-        super.onSaveInstanceState(outState);
-    }
-
-    @Override
-    protected void onRestoreInstanceState(Bundle savedInstanceState) {
-        if (savedInstanceState != null) {
-            mCache = savedInstanceState.getParcelableArrayList(KEY_CACHE);
-        }
-        initData();
-        super.onRestoreInstanceState(savedInstanceState);
-    }
-
-    private void initData() {
-        if(mCache != null) {
-            for (Location loc : mCache) {
-                drawItem(loc);
-            }
-        }else{
-            mCache = new ArrayList<>();
-        }
     }
 
 
@@ -92,13 +52,17 @@ public class MainActivity extends Activity implements View.OnClickListener {
         mBtnRefresh.setOnClickListener(this);
         mBtnClear.setOnClickListener(this);
         try {
-            mLocation.listen(new Handler(getMainLooper()){
+            mLocation.setListener(new GeoLocationListener() {
                 @Override
-                public void handleMessage(Message msg) {
-                    super.handleMessage(msg);
-                    Bundle data = msg.getData();
-                    Location loc = data.getParcelable(GeoLocation.KEY_LOCATION);
-                    appendToList(loc);
+                public void onLocationChanged(Location location) {
+                    //super.onLocationChanged(location);
+                    final Location loc = location;
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            appendToList(loc);
+                        }
+                    });
                 }
             });
         } catch (Exception e) {
@@ -112,9 +76,6 @@ public class MainActivity extends Activity implements View.OnClickListener {
      */
     private void appendToList(Location loc) {
         if(loc != null) {
-
-            mCache.add(loc);
-
             drawItem(loc);
         }
     }
@@ -130,7 +91,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
     private String getTextInfo(Location loc) {
         if(loc != null){
-            return String.format("时间：%s\n经度：%s\n纬度：%s\n高程：%s\n速度：%s",
+            return String.format("Provider:%s\nTime：%s\nLongitude：%s\nLatitude：%s\nAltitude：%s\nSpeed：%s",
+                    loc.getProvider(),
                     SimpleDateFormat.getDateInstance().format(new Date(loc.getTime())),
                     loc.getLongitude(),
                     loc.getLatitude(),
@@ -144,16 +106,13 @@ public class MainActivity extends Activity implements View.OnClickListener {
     @Override
     public void onClick(View view) {
         TextView t = (TextView) view;
-        Toast.makeText(this,"执行："+ t.getText().toString(),Toast.LENGTH_SHORT).show();
         switch (view.getId()){
             case R.id.btn_clear:
                 mList.removeAllViews();
-                mCache.clear();
                 break;
             case R.id.btn_refresh:
                 try {
-                    Location loc = mLocation.getLastLocation();
-                    Log.i(TAG,"获取最新位置："+ JSON.toJSONString(loc));
+                    Location loc = mLocation.getLastKnownLocation();
                     appendToList(loc);
                 } catch (Exception e) {
                     e.printStackTrace();

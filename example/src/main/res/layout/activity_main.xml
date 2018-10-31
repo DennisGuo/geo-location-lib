@@ -17,7 +17,7 @@
             android:layout_height="wrap_content"
             android:layout_alignParentLeft="true"
             android:layout_centerInParent="true"
-            android:text="位置日志"
+            android:text="Locations"
             android:textColor="@android:color/white"
             android:textSize="18sp" />
 
@@ -34,7 +34,7 @@
                 android:layout_marginRight="5sp"
                 android:background="@android:color/holo_green_light"
                 android:padding="10sp"
-                android:text="获取最后位置"
+                android:text="Get Last"
                 android:textColor="@android:color/white" />
 
             <Button
@@ -43,7 +43,7 @@
                 android:layout_height="wrap_content"
                 android:background="@android:color/holo_red_light"
                 android:padding="10sp"
-                android:text="清空日志"
+                android:text="Clear"
                 android:textColor="@android:color/white" />
         </LinearLayout>
     </RelativeLayout>
