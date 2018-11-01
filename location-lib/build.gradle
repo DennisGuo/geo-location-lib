@@ -3,27 +3,22 @@ buildscript{
         jcenter()
     }
     dependencies{
-        classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.7.3'
-        classpath 'com.github.dcendents:android-maven-gradle-plugin:1.5'
+        classpath  'com.novoda:bintray-release:0.8.1'
     }
 }
 
 apply plugin: 'com.android.library'
-apply plugin: 'com.github.dcendents.android-maven'
-apply plugin: 'com.jfrog.bintray'
-
-group = "cn.geobeans" // Maven Group ID for the artifact，一般填你唯一的包名
-version = "1.0.1"
-def myArtifact = "geo-location-lib"
-
-tasks.withType(JavaCompile) {
-    options.encoding = "UTF-8"
-}
+apply plugin: 'com.novoda.bintray-release'
+apply plugin: 'maven-publish'
 
 
 repositories {
     jcenter()
 }
+
+def groupProjectID = 'cn.geobeans'
+def artifactProjectID = 'geo-location-lib'
+def publishVersionID = "1.1.0"
 
 android{
 
@@ -34,101 +29,47 @@ android{
         minSdkVersion 9
         targetSdkVersion 25
          //打包方便
-        versionCode 1
-        versionName "1.0.1"
-        setProperty("archivesBaseName", myArtifact)
+        versionCode 2
+        versionName publishVersionID
+        setProperty("archivesBaseName", artifactProjectID)
+    }
+
+    testOptions {
+        unitTests.returnDefaultValues = true
     }
 }
 
 // In this section you declare the dependencies for your production and test code
 dependencies {
-
+    testCompile 'junit:junit:4.12'
 }
 
+publish {
 
-def siteUrl = 'https://github.com/DennisGuo/geo-location-lib' // 项目的主页
-def gitUrl = 'https://github.com/DennisGuo/geo-location-lib.git' // Git仓库的url
+    userOrg = 'geobeans'
+    repoName = 'android'
+    groupId = groupProjectID
+    artifactId = artifactProjectID
+    publishVersion = publishVersionID
+    desc = 'Android location library from GeoBeans.'
+    website = 'https://github.com/DennisGuo/geo-location-lib'
 
-def desc = 'Android location library from GeoBeans.'
 
-install {
-    repositories.mavenInstaller {
-        // This generates POM.xml with proper parameters
-        pom {
-            project {
-                packaging 'aar'
-                // Add your description here
-                name desc //项目描述
-                url siteUrl
-                // Set your license
-                licenses {
-                    license {
-                        name 'The Apache Software License, Version 2.0'
-                        url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
-                    }
-                }
-                developers {
-                    developer {
-                        id 'ScyllaGuo'    //填写的一些基本信息
-                        name 'ScyllaGuo'
-                        email 'guohengxi.dennis@gmail.com'
-                    }
-                }
-                scm {
-                    connection gitUrl
-                    developerConnection gitUrl
-                    url siteUrl
-                }
+// Step 2: Add the custom publication details like below
+    publishing {
+        publications {
+            MyPub(MavenPublication) {
+                groupId groupProjectID
+                artifactId artifactProjectID
+                version publishVersionID
+
+                //don't forget to add bundleRelease
+                artifact bundleRelease
+
             }
         }
     }
-}
-task sourcesJar(type: Jar) {
-    from android.sourceSets.main.java.srcDirs
-    classifier = 'sources'
-}
-task javadoc(type: Javadoc) {
-    source = android.sourceSets.main.java.srcDirs
-    options.encoding = 'UTF-8'
-    options.charSet = 'UTF-8'
-    classpath += project.files(android.getBootClasspath().join(File.pathSeparator))
-}
-task javadocJar(type: Jar, dependsOn: javadoc) {
 
-    classifier = 'javadoc'
-    from javadoc.destinationDir
+    //Step 3: don't forget to add your custom publication
+    publications = ['MyPub']
 }
-
-artifacts {
-    //archives javadocJar
-    archives sourcesJar
-}
-
-Properties properties = new Properties()
-properties.load(project.rootProject.file('local.properties').newDataInputStream())
-
-bintray {
-    user = properties.getProperty("bintray.user")
-    key = properties.getProperty("bintray.key")
-    configurations = ['archives']
-    override = true
-    publish = true
-    pkg {
-        repo = "android"
-        name = myArtifact   //发布到JCenter上的项目名字
-        userOrg = "geobeans"
-        desc = 'Android location library from GeoBeans.'
-        websiteUrl = siteUrl
-        issueTrackerUrl = siteUrl + '/issues'
-        vcsUrl = gitUrl
-        licenses = ["Apache-2.0"]
-
-        version {
-            name = '1.0.1'
-            desc = 'Provid getLastKnown and listen api.'
-            released = new Date()
-            //vcsTag = version
-        }
-    }
-}
-

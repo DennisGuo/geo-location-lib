@@ -30,35 +30,45 @@ public class GeoLocation implements GeoLoc {
     public static final String KEY_LOCATION = "location";
 
     private static GeoLocation mInstance;
+    //缓存位置队列，用于计算错误的位置
+    private static EvictingQueue<Location> mCacheQueue = new EvictingQueue<>(2);
 
     private GeoLocationListener mLocationListener;
-    private int mFrequency = 60; //获取位置间隔时间，单位秒
-    private int mDistance = 1; //获取位置间隔距离，单位米
+    private int mFrequency = 60; // 获取位置间隔时间，单位秒
+    private int mDistance = 1; // 获取位置间隔距离，单位米
+    private int mDropDistance = 0; // 丢弃的距离，单位米，最小值为50,0 代表不丢弃
 
     private Context mContext;
     private LocationManager mLocationManager;
 
-    private GeoLocation(Context mContext) {
+    private GeoLocation(Context mContext,int mFrequency,int mDistance) {
         this.mContext = mContext;
+        this.mFrequency = mFrequency;
+        this.mDistance = mDistance;
         this.requestPermission();
         this.initLocationManager();
     }
 
+    public static synchronized GeoLocation getInstance(Context mContext,int frequncy,int distance) {
+        if (mInstance != null) {
+            return mInstance;
+        } else {
+            mInstance = new GeoLocation(mContext,frequncy,distance);
+            return mInstance;
+        }
+    }
     public static synchronized GeoLocation getInstance(Context mContext) {
         if (mInstance != null) {
             return mInstance;
         } else {
-            mInstance = new GeoLocation(mContext);
+            mInstance = new GeoLocation(mContext,60,10);
             return mInstance;
         }
     }
 
-    public void setFrequency(int mFrequency) {
-        this.mFrequency = mFrequency;
-    }
-
-    public void setDistance(int mDistance) {
-        this.mDistance = mDistance;
+    public void setDropDistance(int mDropDistance) {
+        if(mDropDistance < 50) mDropDistance = 50;
+        this.mDropDistance = mDropDistance;
     }
 
     /**
@@ -70,10 +80,10 @@ public class GeoLocation implements GeoLoc {
         this.mLocationListener = listener;
     }
 
-    public void requestPermission(){
+    public void requestPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            if(mContext instanceof Activity) {
-                ((Activity)mContext).requestPermissions(new String[]{
+            if (mContext instanceof Activity) {
+                ((Activity) mContext).requestPermissions(new String[]{
                         Manifest.permission.ACCESS_FINE_LOCATION,
                         Manifest.permission.ACCESS_COARSE_LOCATION
                 }, 400);
@@ -102,7 +112,7 @@ public class GeoLocation implements GeoLoc {
             mLocationManager = (LocationManager) mContext.getSystemService(LOCATION_SERVICE);
             if (mLocationManager != null) {
                 List<String> providers = mLocationManager.getAllProviders();
-                Log.e(TAG, "all providers：" + providers.toString());
+                Log.e(TAG, "All providers：" + providers.toString());
 
                 LocationListener listener = getLocationListener();
 
@@ -193,14 +203,32 @@ public class GeoLocation implements GeoLoc {
         return rs;
     }
 
+    @Override
+    public EvictingQueue<Location> getLastQueue() {
+        return mCacheQueue;
+    }
 
     private LocationListener getLocationListener() {
         return new LocationListener() {
             @Override
             public void onLocationChanged(Location location) {
                 // TODO: drop wrong location
-                mLocationListener.onLocationChanged(location);
-                writeToSp(location, mContext.getSharedPreferences(GeoLocation.KEY_LOCATION, MODE_PRIVATE));
+                Location loc = location;
+                if (mDropDistance > 0 && mCacheQueue.size() > 0) {
+                    Location last = mCacheQueue.pop();
+                    if (location.getTime() - last.getTime() < mFrequency * 2) { // 如果位置之间的时间小于间隔时间的2倍
+                        float distance = location.distanceTo(last);
+                        if(distance > mDropDistance) {
+                            // drop
+                            loc = null;
+                        }
+                    }
+                }
+                if (loc != null) {
+                    mCacheQueue.add(loc);
+                    mLocationListener.onLocationChanged(location);
+                    writeToSp(location, mContext.getSharedPreferences(GeoLocation.KEY_LOCATION, MODE_PRIVATE));
+                }
 
             }
 
