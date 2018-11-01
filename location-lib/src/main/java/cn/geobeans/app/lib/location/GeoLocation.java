@@ -36,12 +36,12 @@ public class GeoLocation implements GeoLoc {
     private GeoLocationListener mLocationListener;
     private int mFrequency = 60; // 获取位置间隔时间，单位秒
     private int mDistance = 1; // 获取位置间隔距离，单位米
-    private int mDropDistance = 0; // 丢弃的距离，单位米，最小值为50,0 代表不丢弃
-
+    private int mDropDistance = 0; // 丢弃的距离，单位米，最小值为10,0 代表不丢弃
+    private int mDropTime = 0; // 不做丢弃的2点之间的时间间隔
     private Context mContext;
     private LocationManager mLocationManager;
 
-    private GeoLocation(Context mContext,int mFrequency,int mDistance) {
+    private GeoLocation(Context mContext, int mFrequency, int mDistance) {
         this.mContext = mContext;
         this.mFrequency = mFrequency;
         this.mDistance = mDistance;
@@ -49,26 +49,31 @@ public class GeoLocation implements GeoLoc {
         this.initLocationManager();
     }
 
-    public static synchronized GeoLocation getInstance(Context mContext,int frequncy,int distance) {
+    public static synchronized GeoLocation getInstance(Context mContext, int frequncy, int distance) {
         if (mInstance != null) {
             return mInstance;
         } else {
-            mInstance = new GeoLocation(mContext,frequncy,distance);
+            mInstance = new GeoLocation(mContext, frequncy, distance);
             return mInstance;
         }
     }
+
     public static synchronized GeoLocation getInstance(Context mContext) {
         if (mInstance != null) {
             return mInstance;
         } else {
-            mInstance = new GeoLocation(mContext,60,10);
+            mInstance = new GeoLocation(mContext, 60, 10);
             return mInstance;
         }
     }
 
     public void setDropDistance(int mDropDistance) {
-        if(mDropDistance < 50) mDropDistance = 50;
+        if (mDropDistance < 10) mDropDistance = 10;
         this.mDropDistance = mDropDistance;
+    }
+
+    public void setDropTime(int time) {
+        this.mDropTime = time;
     }
 
     /**
@@ -216,9 +221,9 @@ public class GeoLocation implements GeoLoc {
                 Location loc = location;
                 if (mDropDistance > 0 && mCacheQueue.size() > 0) {
                     Location last = mCacheQueue.pop();
-                    if (location.getTime() - last.getTime() < mFrequency * 2) { // 如果位置之间的时间小于间隔时间的2倍
+                    if (location.getTime() - last.getTime() < mDropTime * 1000) { // 如果位置之间的时间小于间隔时间
                         float distance = location.distanceTo(last);
-                        if(distance > mDropDistance) {
+                        if (distance > mDropDistance) {
                             // drop
                             loc = null;
                         }
