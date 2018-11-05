@@ -126,7 +126,7 @@ public class GeoLocation implements GeoLoc {
                 //网络
                 mLocationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, mFrequency * 1000, mDistance, listener);
                 //第三方应用
-                mLocationManager.requestLocationUpdates(LocationManager.PASSIVE_PROVIDER, mFrequency * 1000, mDistance, listener);
+//                mLocationManager.requestLocationUpdates(LocationManager.PASSIVE_PROVIDER, mFrequency * 1000, mDistance, listener);
 
             }
         } catch (Exception e) {
